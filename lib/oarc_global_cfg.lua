@@ -77,6 +77,7 @@ function InitOarcConfig()
         global.ocfg.enable_vanilla_spawns = settings.global["oarc-enable-vanilla-spawns"].value
         global.ocfg.enable_buddy_spawn = settings.global["oarc-enable-buddy-spawn"].value
         global.ocfg.frontier_rocket_silo = settings.global["oarc-frontier-rocket-silo"].value
+        global.ocfg.silo_islands = settings.global["oarc-silo-islands"].value
         global.ocfg.enable_undecorator = settings.global["oarc-enable-undecorator"].value
         global.ocfg.enable_tags = settings.global["oarc-enable-tags"].value
         global.ocfg.enable_long_reach = settings.global["oarc-enable-long-reach"].value
@@ -107,11 +108,11 @@ function InitOarcConfig()
             },
             safe_area =
             {
-                safe_radius = CHUNK_SIZE*10,
-                warn_radius = CHUNK_SIZE*20,
-                warn_reduction = 20,
-                danger_radius = CHUNK_SIZE*50,
-                danger_reduction = 5,
+                safe_radius = CHUNK_SIZE*settings.global["oarc-safe-area-chunk-dist"].value,
+                warn_radius = CHUNK_SIZE*settings.global["oarc-warning-area-chunk-dist"].value,
+                warn_reduction = settings.global["oarc-warning-area-reduction-ratio"].value,
+                danger_radius = CHUNK_SIZE*settings.global["oarc-reduced-danger-area-chunk-dist"].value,
+                danger_reduction = settings.global["oarc-reduced-danger-area-reduction-ratio"].value,
             },
             water = {
                 x_offset = settings.global["oarc-water-x-offset"].value,
@@ -186,9 +187,9 @@ function InitOarcConfig()
         global.ocfg.frontier_silo_count = settings.global["oarc-frontier-silo-count"].value
         global.ocfg.frontier_silo_distance = settings.global["oarc-frontier-silo-distance"].value
         global.ocfg.frontier_fixed_pos = false
-        global.ocfg.frontier_pos_table = {{x = 0, y = 100}}
+        global.ocfg.frontier_pos_table = {}
         global.ocfg.frontier_silo_vision = settings.global["oarc-frontier-silo-vision"].value
-        global.ocfg.frontier_allow_build = true
+        global.ocfg.frontier_allow_build = settings.global["oarc-frontier-silo-allow-build"].value
     end
 
 

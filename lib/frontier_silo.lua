@@ -122,9 +122,7 @@ local function CreateRocketSilo(surface, siloPosition, force)
                                                 icon={type="item",name="rocket-silo"}})
 
     -- Make silo safe from being removed by regrowth
-    -- if global.ocfg.enable_regrowth then
-        OarcRegrowthOffLimits(siloPosition, 5)
-    -- end
+    OarcRegrowthOffLimits(siloPosition, 5)
 
 
     if ENABLE_SILO_BEACONS then
@@ -220,6 +218,7 @@ function GenerateRocketSiloAreas(surface)
     if (global.ocfg.frontier_silo_vision) then
         ChartRocketSiloAreas(surface, game.forces[global.ocfg.main_force])
     end
+    SendBroadcastMsg("It may take some time for rocket silo areas to be prepared (upwards of minutes depending on silo count)")
 end
 
 -- Chart chunks where we plan to place the rocket silos.
@@ -238,11 +237,10 @@ function DelayedSiloCreationOnTick(surface)
     -- Delay the creation of the silos so we place them on already generated lands.
     if (not global.oarc_silos_generated and (game.tick >= #global.siloPosition*10*TICKS_PER_SECOND)) then
         log("Frontier silos generated!")
-        SendBroadcastMsg("Rocket silos are now available!")
+        SendBroadcastMsg("Rocket silos (or allowed build areas) are now available!")
         global.oarc_silos_generated = true
         GenerateAllSilos(surface)
     end
-
 end
 
 

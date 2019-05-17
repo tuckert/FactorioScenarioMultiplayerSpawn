@@ -1,0 +1,11 @@
+{
+  "name": "oarc-mod",
+  "version": "0.0.3",
+  "factorio_version": "0.17",
+  "title": "Oarc Multiplayer Spawn",
+  "author": "Oarcinae",
+  "contact": "Forums, Discussion Page, oarcinae@gmail.com, Discord:Oarc#8695",
+  "homepage": "https://github.com/Oarcinae/FactorioScenarioMultiplayerSpawn",
+  "description": "Overhauls multiplayer spawning system.",
+  "dependencies": ["base >= 0.17"]
+}
