@@ -74,6 +74,13 @@ data:extend({
     },
     {
         type = "bool-setting",
+        name = "oarc-enable-lock-goodies",
+        setting_type = "runtime-global",
+        default_value = true,
+        order = "bafa"
+    },
+    {
+        type = "bool-setting",
         name = "oarc-modified-enemy-spawning",
         setting_type = "runtime-global",
         default_value = true,
@@ -223,7 +230,7 @@ data:extend({
         type = "int-setting",
         name = "oarc-safe-area-chunk-dist",
         setting_type = "runtime-global",
-        default_value = 256,
+        default_value = 10,
         minimum_value = 0,
         order = "bcf"
     },
@@ -231,7 +238,7 @@ data:extend({
         type = "int-setting",
         name = "oarc-warning-area-chunk-dist",
         setting_type = "runtime-global",
-        default_value = 512,
+        default_value = 30,
         minimum_value = 0,
         order = "bcg"
     },
@@ -247,7 +254,7 @@ data:extend({
         type = "int-setting",
         name = "oarc-reduced-danger-area-chunk-dist",
         setting_type = "runtime-global",
-        default_value = 1024,
+        default_value = 50,
         minimum_value = 0,
         order = "bci"
     },

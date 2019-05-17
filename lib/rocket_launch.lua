@@ -40,7 +40,7 @@ function RocketLaunchEvent(event)
         global.satellite_sent[force.name] = 1
 
         -- Unlock research
-        if LOCK_GOODIES_UNTIL_ROCKET_LAUNCH then
+        if global.ocfg.lock_goodies then
             for _,f in pairs(game.forces) do
                 EnableTech(f, "atomic-bomb")
                 EnableTech(f, "power-armor-mk2")
