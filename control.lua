@@ -51,6 +51,14 @@ require("lib/separate_spawns_guis")
 
 require("lib/oarc_gui_tabs")
 
+-- OARC ENEMIES
+require("oe/oarc_enemies_defines")
+require("oe/oarc_enemies_evo")
+require("oe/oarc_enemies")
+require("oe/oarc_enemies_gui")
+require("oe/oarc_enemies_tick_logic")
+
+
 -- Create a new surface so we can modify map settings at the start.
 GAME_SURFACE_NAME="oarc"
 
@@ -64,6 +72,7 @@ GAME_SURFACE_NAME="oarc"
 --   time the game starts
 ----------------------------------------
 script.on_init(function(event)
+    InitOarcEnemies() -- Setup global tables and such
 
     -- FIRST
     InitOarcConfig()
@@ -91,6 +100,7 @@ end)
 -- Used for end game win conditions / unlocking late game stuff
 ----------------------------------------
 script.on_event(defines.events.on_rocket_launched, function(event)
+    OarcEnemiesRocketLaunched(event)
     if global.ocfg.frontier_rocket_silo then
         RocketLaunchEvent(event)
     end
@@ -101,6 +111,7 @@ end)
 -- Chunk Generation
 ----------------------------------------
 script.on_event(defines.events.on_chunk_generated, function(event)
+    OarcEnemiesChunkGenerated(event)
 
     if global.ocfg.enable_undecorator then
         UndecorateOnChunkGenerate(event)
@@ -120,9 +131,10 @@ end)
 -- Gui Click
 ----------------------------------------
 script.on_event(defines.events.on_gui_click, function(event)
-
     -- Don't interfere with other mod related stuff.
     if (event.element.get_mod() ~= nil) then return end
+
+    OarcEnemiesGuiClick(event)
 
     if global.ocfg.enable_tags then
         TagGuiClick(event)
@@ -164,6 +176,9 @@ script.on_event(defines.events.on_player_joined_game, function(event)
 end)
 
 script.on_event(defines.events.on_player_created, function(event)
+    OarcEnemiesPlayerCreatedEvent(event)
+    OarcEnemiesCreateGui(event)
+
     local player = game.players[event.player_index]
 
     -- Move the player to the game surface immediately.
@@ -197,6 +212,7 @@ end)
 -- On BUILD entity. Don't forget on_robot_built_entity too!
 ----------------------------------------
 script.on_event(defines.events.on_built_entity, function(event)
+    OarcEnemiesTrackBuildings(event.created_entity)
     if global.ocfg.enable_autofill then
         Autofill(event)
     end
@@ -217,9 +233,9 @@ end)
 -- place items that don't count as player_built and robot_built.
 -- Specifically FARL.
 ----------------------------------------
--- script.on_event(defines.events.script_raised_built, function(event)
-
--- end)
+script.on_event(defines.events.script_raised_built, function(event)
+    OarcEnemiesTrackBuildings(event.entity)
+end)
 
 
 ----------------------------------------
@@ -227,6 +243,8 @@ end)
 -- Delayed events, delayed spawns, ...
 ----------------------------------------
 script.on_event(defines.events.on_tick, function(event)
+    OarcEnemiesOnTick()
+    TimeoutSpeechBubblesOnTick()
 
     DelayedSpawnOnTick()
 
@@ -237,14 +255,11 @@ script.on_event(defines.events.on_tick, function(event)
 end)
 
 
--- script.on_event(defines.events.on_sector_scanned, function (event)
-
--- end)
-
 ----------------------------------------
---
+-- Robots man!?
 ----------------------------------------
 script.on_event(defines.events.on_robot_built_entity, function (event)
+    OarcEnemiesTrackBuildings(event.created_entity)
     if global.ocfg.frontier_rocket_silo then
         BuildSiloAttempt(event)
     end
@@ -271,6 +286,7 @@ end)
 -- This is where you can permanently remove researched techs
 ----------------------------------------
 script.on_event(defines.events.on_research_finished, function(event)
+   OarcEnemiesResearchFinishedEvent(event)
 
     -- Never allows players to build rocket-silos in "frontier" mode.
     if global.ocfg.frontier_rocket_silo and not global.ocfg.frontier_allow_build then
@@ -293,11 +309,13 @@ end)
 -- This is where I modify biter spawning based on location and other factors.
 ----------------------------------------
 script.on_event(defines.events.on_entity_spawned, function(event)
-    if (global.ocfg.modified_enemy_spawning) then
-        ModifyEnemySpawnsNearPlayerStartingAreas(event)
-    end
+    event.entity.destroy()
+    -- if (global.ocfg.modified_enemy_spawning) then
+    --     ModifyEnemySpawnsNearPlayerStartingAreas(event)
+    -- end
 end)
 script.on_event(defines.events.on_biter_base_built, function(event)
+    OarcEnemiesBiterBaseBuilt(event)
     if (global.ocfg.modified_enemy_spawning) then
         ModifyEnemySpawnsNearPlayerStartingAreas(event)
     end
@@ -311,3 +329,26 @@ script.on_event(defines.events.on_character_corpse_expired, function(event)
     DropGravestoneChestFromCorpse(event.corpse)
 end)
 
+script.on_event(defines.events.on_entity_died, function(event)
+    OarcEnemiesEntityDiedEvent(event)
+end)
+script.on_event(defines.events.on_unit_removed_from_group, function(event)
+    OarcEnemiesUnitRemoveFromGroupEvent(event)
+end)
+script.on_event(defines.events.on_ai_command_completed, function(event)
+    -- log("AI cmd completed? " .. event.unit_number .. " : " .. event.result .. " " .. game.tick)
+    if (event.result == defines.behavior_result.fail) then
+        OarcEnemiesGroupCmdFailed(event)
+    end
+end)
+script.on_event(defines.events.on_script_path_request_finished, function(event)
+    ProcessAttackCheckPathComplete(event)
+end)
+
+script.on_event(defines.events.on_force_created, function(event)
+    OarcEnemiesForceCreated(event)
+end)
+
+script.on_event(defines.events.on_sector_scanned, function (event)
+    OarcEnemiesSectorScanned(event)
+end)
