@@ -13,6 +13,7 @@ OARC_SPAWN_CTRL_GUI_NAME = "Spawn Controls"
 OARC_PLAYER_LIST_GUI_TAB_NAME = "Players"
 OARC_TAGS_GUI_TAB_NAME = "Name Tags"
 OARC_ROCKETS_GUI_TAB_NAME = "Rockets"
+OARC_SHARED_ITEMS_GUI_TAB_NAME = "Shared Items"
 
 local OARC_GUI_TAB_CONTENT_FUNCTIONS = {}
 OARC_GUI_TAB_CONTENT_FUNCTIONS["Server Info"] = CreateGameOptionsTab
@@ -20,6 +21,7 @@ OARC_GUI_TAB_CONTENT_FUNCTIONS["Spawn Controls"] = CreateSpawnCtrlGuiTab
 OARC_GUI_TAB_CONTENT_FUNCTIONS["Players"] = CreatePlayerListGuiTab
 OARC_GUI_TAB_CONTENT_FUNCTIONS["Name Tags"] = CreateTagGuiTab
 OARC_GUI_TAB_CONTENT_FUNCTIONS["Rockets"] = CreateRocketGuiTab
+OARC_GUI_TAB_CONTENT_FUNCTIONS["Shared Items"] = CreateSharedItemsGuiTab
 
 function InitOarcGuiTabs(player)
     CreateOarcGuiButton(player)
@@ -48,16 +50,22 @@ function InitOarcGuiTabs(player)
     if (global.satellite_sent) then
         SetOarcGuiTabEnabled(player, OARC_ROCKETS_GUI_TAB_NAME, true)
     end
+
+    if global.ocfg.enable_chest_sharing then
+        AddOarcGuiTab(player, OARC_SHARED_ITEMS_GUI_TAB_NAME)
+        SetOarcGuiTabEnabled(player, OARC_SHARED_ITEMS_GUI_TAB_NAME, true)
+    end
 end
 
 function CreateOarcGuiButton(player)
     if (mod_gui.get_button_flow(player).oarc_button == nil) then
         local b = mod_gui.get_button_flow(player).add{name="oarc_button",
+                                                        caption="CLICK ME FOR MORE INFO",
                                                         type="sprite-button",
-                                                        sprite="utility/expand_dots",
+                                                        -- sprite="utility/expand_dots",
                                                         style=mod_gui.button_style}
         b.style.padding=2
-        b.style.width=20
+        -- b.style.width=20
     end
 end
 
@@ -82,10 +90,17 @@ end
 
 function ClickOarcGuiButton(event)
     if not (event and event.element and event.element.valid) then return end
-    local player = game.players[event.element.player_index]
+    local player = game.players[event.player_index]
     local name = event.element.name
 
     if (name ~= "oarc_button") then return end
+
+    if (event.element.caption ~= "") then
+        event.element.caption = ""
+        event.element.style.width = 20
+        event.element.sprite="utility/expand_dots"
+    end
+
     if (not DoesOarcGuiExist(player)) then
         CreateOarcGuiTabsPane(player)
     else

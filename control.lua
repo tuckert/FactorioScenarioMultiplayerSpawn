@@ -34,6 +34,7 @@ require("lib/player_list")
 require("lib/rocket_launch")
 require("lib/admin_commands")
 require("lib/regrowth_map")
+require("lib/shared_chests")
 
 -- For Philip. I currently do not use this and need to add proper support for
 -- commands like this in the future.
@@ -154,10 +155,6 @@ script.on_event(defines.events.on_gui_click, function(event)
 
     if global.ocfg.enable_tags then
         TagGuiClick(event)
-    end
-
-    if global.ocfg.enable_player_list then
-        PlayerListGuiClick(event)
     end
 
     WelcomeTextGuiClick(event)
@@ -286,6 +283,9 @@ script.on_event(defines.events.on_tick, function(event)
         DelayedSiloCreationOnTick(game.surfaces[GAME_SURFACE_NAME])
     end
 
+    if global.ocfg.enable_chest_sharing then
+        SharedChestsOnTick()
+    end
 end)
 
 

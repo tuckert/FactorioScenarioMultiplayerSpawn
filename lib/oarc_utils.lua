@@ -31,6 +31,39 @@ function FlyingText(msg, pos, color, surface)
     end
 end
 
+-- Requires having an on_tick handler.
+function DisplaySpeechBubble(player, text, timeout_secs)
+
+    if (global.oarc_speech_bubbles == nil) then
+        global.oarc_speech_bubbles = {}
+    end
+
+    if (player and player.character) then
+        local sp = player.surface.create_entity{name = "compi-speech-bubble",
+                                                position = player.position,
+                                                text = text,
+                                                source = player.character}
+        table.insert(global.oarc_speech_bubbles, {entity=sp,
+                        timeout_tick=game.tick+(timeout_secs*TICKS_PER_SECOND)})
+    end
+end
+
+-- Every second, check a global table to see if we have any speech bubbles to kill.
+function TimeoutSpeechBubblesOnTick()
+    if ((game.tick % (TICKS_PER_SECOND)) == 3) then
+        if (global.oarc_speech_bubbles and (#global.oarc_speech_bubbles > 0)) then
+            for k,sp in pairs(global.oarc_speech_bubbles) do
+                if (game.tick > sp.timeout_tick) then
+                    if (sp.entity ~= nil) and (sp.entity.valid) then
+                        sp.entity.start_fading_out()
+                    end
+                    table.remove(global.oarc_speech_bubbles, k)
+                end
+            end
+        end
+    end
+end
+
 -- Broadcast messages to all connected players
 function SendBroadcastMsg(msg)
     for name,player in pairs(game.connected_players) do
@@ -89,6 +122,19 @@ function FYShuffle(tInput)
     return tReturn
 end
 
+-- Get a random KEY from a table.
+function GetRandomKeyFromTable(t)
+    local keyset = {}
+    for k,v in pairs(t) do
+        table.insert(keyset, k)
+    end
+    return keyset[math.random(#keyset)]
+end
+
+function GetRandomValueFromTable(t)
+    return t[GetRandomKeyFromTable(t)]
+end
+
 -- Simple function to get distance between two positions.
 function getDistance(posA, posB)
     -- Get the length for each of the components x and y
@@ -138,7 +184,7 @@ function GivePlayerStarterItems(player)
         player.insert(item)
     end
 
-    if ENABLE_POWER_ARMOR_QUICK_START then
+    if global.ocfg.enable_power_armor_start then
         GiveQuickStartPowerArmor(player)
     end
 end
@@ -252,6 +298,27 @@ end
 function RemoveFish(surface, area)
     for _, entity in pairs(surface.find_entities_filtered{area = area, type="fish"}) do
         entity.destroy()
+    end
+end
+
+-- Render a path
+function RenderPath(path, ttl, players)
+    local last_pos = path[1].position
+    local color = {r = 1, g = 0, b = 0, a = 0.5}
+
+    for i,v in pairs(path) do
+        if (i ~= 1) then
+
+            color={r = 1/(1+(i%3)), g = 1/(1+(i%5)), b = 1/(1+(i%7)), a = 0.5}
+            rendering.draw_line{color=color,
+                                width=2,
+                                from=v.position,
+                                to=last_pos,
+                                surface=game.surfaces[GAME_SURFACE_NAME],
+                                players=players,
+                                time_to_live=ttl}
+        end
+        last_pos = v.position
     end
 end
 
@@ -430,6 +497,10 @@ function GetChunkPosFromTilePos(tile_pos)
     return {x=math.floor(tile_pos.x/32), y=math.floor(tile_pos.y/32)}
 end
 
+function GetCenterTilePosFromChunkPos(c_pos)
+    return {x=c_pos.x*32 + 16, y=c_pos.y*32 + 16}
+end
+
 -- Get the left_top
 function GetChunkTopLeft(pos)
     return {x=pos.x-(pos.x % 32), y=pos.y-(pos.y % 32)}
@@ -477,6 +548,11 @@ function CreateGameSurface()
         end
     end
 
+    -- If Oarc Enemies are enabled, make sure to turn off enemy spawning!
+    if (global.oe) then
+        nauvis_settings.autoplace_controls["enemy-base"].frequency = 0
+    end
+
     -- Create new game surface
     local s = game.create_surface(GAME_SURFACE_NAME, nauvis_settings)
 
@@ -485,6 +561,33 @@ function CreateGameSurface()
         remote.call("oarc_regrowth", "add_surface", s.index)
         remote.call("oarc_regrowth", "area_offlimits_chunkpos", s.index, {x=0,y=0}, 5)
     end
+end
+
+function CreateTileArrow(surface, pos, type)
+
+    tiles = {}
+
+    if (type == "LEFT") then
+        table.insert(tiles, {name = "hazard-concrete-left", position = {pos.x, pos.y}})
+        table.insert(tiles, {name = "hazard-concrete-left", position = {pos.x+1, pos.y}})
+        table.insert(tiles, {name = "hazard-concrete-left", position = {pos.x+2, pos.y}})
+        table.insert(tiles, {name = "hazard-concrete-left", position = {pos.x+3, pos.y}})
+        table.insert(tiles, {name = "hazard-concrete-right", position = {pos.x, pos.y+1}})
+        table.insert(tiles, {name = "hazard-concrete-right", position = {pos.x+1, pos.y+1}})
+        table.insert(tiles, {name = "hazard-concrete-right", position = {pos.x+2, pos.y+1}})
+        table.insert(tiles, {name = "hazard-concrete-right", position = {pos.x+3, pos.y+1}})
+    elseif (type == "RIGHT") then
+        table.insert(tiles, {name = "hazard-concrete-right", position = {pos.x, pos.y}})
+        table.insert(tiles, {name = "hazard-concrete-right", position = {pos.x+1, pos.y}})
+        table.insert(tiles, {name = "hazard-concrete-right", position = {pos.x+2, pos.y}})
+        table.insert(tiles, {name = "hazard-concrete-right", position = {pos.x+3, pos.y}})
+        table.insert(tiles, {name = "hazard-concrete-left", position = {pos.x, pos.y+1}})
+        table.insert(tiles, {name = "hazard-concrete-left", position = {pos.x+1, pos.y+1}})
+        table.insert(tiles, {name = "hazard-concrete-left", position = {pos.x+2, pos.y+1}})
+        table.insert(tiles, {name = "hazard-concrete-left", position = {pos.x+3, pos.y+1}})
+    end
+    
+    surface.set_tiles(tiles, true)
 end
 
 --------------------------------------------------------------------------------
@@ -854,8 +957,8 @@ function CreateCropCircle(surface, centerPos, chunkArea, tileRadius, fillTile)
             end
 
             -- Create a circle of trees around the spawn point.
-            if ((distVar < tileRadSqr-200) and
-                (distVar > tileRadSqr-400)) then
+            if ((distVar < tileRadSqr-100) and
+                (distVar > tileRadSqr-500)) then
                 surface.create_entity({name="tree-02", amount=1, position={i, j}})
             end
         end
@@ -905,14 +1008,19 @@ function CreateMoat(surface, centerPos, chunkArea, tileRadius, fillTile)
     for i=chunkArea.left_top.x,chunkArea.right_bottom.x,1 do
         for j=chunkArea.left_top.y,chunkArea.right_bottom.y,1 do
 
-            -- This ( X^2 + Y^2 ) is used to calculate if something
-            -- is inside a circle area.
-            local distVar = math.floor((centerPos.x - i)^2 + (centerPos.y - j)^2)
+            if (j == centerPos.y-1) or (j == centerPos.y) or (j == centerPos.y+1) then
 
-            -- Create a circle of water
-            if ((distVar < tileRadSqr+(1500*global.ocfg.spawn_config.gen_settings.moat_size_modifier)) and
-                (distVar > tileRadSqr)) then
-                table.insert(waterTiles, {name = "water", position ={i,j}})
+            else
+
+                -- This ( X^2 + Y^2 ) is used to calculate if something
+                -- is inside a circle area.
+                local distVar = math.floor((centerPos.x - i)^2 + (centerPos.y - j)^2)
+
+                -- Create a circle of water
+                if ((distVar < tileRadSqr+(1500*global.ocfg.spawn_config.gen_settings.moat_size_modifier)) and
+                    (distVar > tileRadSqr)) then
+                    table.insert(waterTiles, {name = "water", position ={i,j}})
+                end
             end
 
             -- Enforce land inside the edges of the circle to make sure it's

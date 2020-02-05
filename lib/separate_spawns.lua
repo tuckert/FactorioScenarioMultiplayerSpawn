@@ -220,7 +220,7 @@ function SetupAndClearSpawnAreas(surface, chunkArea)
                 RemoveInCircle(surface, chunkArea, "cliff", spawn.pos, global.ocfg.spawn_config.gen_settings.land_area_tiles+5)
                 RemoveDecorationsArea(surface, chunkArea)
 
-                local fill_tile = "grass-1"
+                local fill_tile = "landfill"
                 if (game.active_mods["oarc-restricted-build"]) then
                     fill_tile = global.ocfg.locked_build_area_tile
                 end
@@ -584,6 +584,9 @@ function DelayedSpawnOnTick()
     end
 end
 
+
+
+
 function SendPlayerToNewSpawnAndCreateIt(delayedSpawn)
 
     -- DOUBLE CHECK and make sure the area is super safe.
@@ -591,14 +594,18 @@ function SendPlayerToNewSpawnAndCreateIt(delayedSpawn)
 
     if (not delayedSpawn.vanilla) then
 
+        -- Generate water strip only if we don't have a moat.
+        if (not delayedSpawn.moat) then
+            local water_data = global.ocfg.spawn_config.water
+            CreateWaterStrip(game.surfaces[GAME_SURFACE_NAME],
+                            {x=delayedSpawn.pos.x+water_data.x_offset, y=delayedSpawn.pos.y+water_data.y_offset},
+                            water_data.length)
+            CreateWaterStrip(game.surfaces[GAME_SURFACE_NAME],
+                            {x=delayedSpawn.pos.x+water_data.x_offset, y=delayedSpawn.pos.y+water_data.y_offset+1},
+                            water_data.length)
+        end
+
         -- Create the spawn resources here
-        local water_data = global.ocfg.spawn_config.water
-        CreateWaterStrip(game.surfaces[GAME_SURFACE_NAME],
-                        {x=delayedSpawn.pos.x+water_data.x_offset, y=delayedSpawn.pos.y+water_data.y_offset},
-                        water_data.length)
-        CreateWaterStrip(game.surfaces[GAME_SURFACE_NAME],
-                        {x=delayedSpawn.pos.x+water_data.x_offset, y=delayedSpawn.pos.y+water_data.y_offset+1},
-                        water_data.length)
         GenerateStartingResources(game.surfaces[GAME_SURFACE_NAME], delayedSpawn.pos)
 
     end
@@ -613,6 +620,25 @@ function SendPlayerToNewSpawnAndCreateIt(delayedSpawn)
 
     if (player.gui.screen.wait_for_spawn_dialog ~= nil) then
         player.gui.screen.wait_for_spawn_dialog.destroy()
+    end
+
+    local x_dist = global.ocfg.spawn_config.resource_rand_pos_settings.radius
+    if global.ocfg.enable_chest_sharing then
+
+        SharedChestsSpawnInput(game.players[delayedSpawn.playerName], {x=delayedSpawn.pos.x+x_dist, y=delayedSpawn.pos.y-5})
+        SharedChestsSpawnInput(game.players[delayedSpawn.playerName], {x=delayedSpawn.pos.x+x_dist, y=delayedSpawn.pos.y-4})
+        SharedChestsSpawnInput(game.players[delayedSpawn.playerName], {x=delayedSpawn.pos.x+x_dist, y=delayedSpawn.pos.y-3})
+        SharedChestsSpawnInput(game.players[delayedSpawn.playerName], {x=delayedSpawn.pos.x+x_dist, y=delayedSpawn.pos.y-2})
+        CreateTileArrow(game.surfaces[GAME_SURFACE_NAME], {x=delayedSpawn.pos.x+x_dist-4, y=delayedSpawn.pos.y-4}, "RIGHT")
+        CreateTileArrow(game.surfaces[GAME_SURFACE_NAME], {x=delayedSpawn.pos.x+x_dist+1, y=delayedSpawn.pos.y-4}, "LEFT")
+
+        SharedChestsSpawnOutput(game.players[delayedSpawn.playerName], {x=delayedSpawn.pos.x+x_dist, y=delayedSpawn.pos.y+2})
+        SharedChestsSpawnOutput(game.players[delayedSpawn.playerName], {x=delayedSpawn.pos.x+x_dist, y=delayedSpawn.pos.y+3})
+        SharedChestsSpawnOutput(game.players[delayedSpawn.playerName], {x=delayedSpawn.pos.x+x_dist, y=delayedSpawn.pos.y+4})
+        SharedChestsSpawnOutput(game.players[delayedSpawn.playerName], {x=delayedSpawn.pos.x+x_dist, y=delayedSpawn.pos.y+5})
+        CreateTileArrow(game.surfaces[GAME_SURFACE_NAME], {x=delayedSpawn.pos.x+x_dist-4, y=delayedSpawn.pos.y+3}, "LEFT")
+        CreateTileArrow(game.surfaces[GAME_SURFACE_NAME], {x=delayedSpawn.pos.x+x_dist+1, y=delayedSpawn.pos.y+3}, "RIGHT")
+
     end
 end
 
