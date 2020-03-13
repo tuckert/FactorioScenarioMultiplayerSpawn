@@ -14,6 +14,7 @@ OARC_PLAYER_LIST_GUI_TAB_NAME = "Players"
 OARC_TAGS_GUI_TAB_NAME = "Name Tags"
 OARC_ROCKETS_GUI_TAB_NAME = "Rockets"
 OARC_SHARED_ITEMS_GUI_TAB_NAME = "Shared Items"
+OARC_NOTEPAD_GUI_TAB_NAME = "Notepad"
 
 local OARC_GUI_TAB_CONTENT_FUNCTIONS = {}
 OARC_GUI_TAB_CONTENT_FUNCTIONS["Server Info"] = CreateGameOptionsTab
@@ -22,6 +23,7 @@ OARC_GUI_TAB_CONTENT_FUNCTIONS["Players"] = CreatePlayerListGuiTab
 OARC_GUI_TAB_CONTENT_FUNCTIONS["Name Tags"] = CreateTagGuiTab
 OARC_GUI_TAB_CONTENT_FUNCTIONS["Rockets"] = CreateRocketGuiTab
 OARC_GUI_TAB_CONTENT_FUNCTIONS["Shared Items"] = CreateSharedItemsGuiTab
+OARC_GUI_TAB_CONTENT_FUNCTIONS["Notepad"] = CreateNotepadGuiTab
 
 function InitOarcGuiTabs(player)
     CreateOarcGuiButton(player)
@@ -55,6 +57,11 @@ function InitOarcGuiTabs(player)
         AddOarcGuiTab(player, OARC_SHARED_ITEMS_GUI_TAB_NAME)
         SetOarcGuiTabEnabled(player, OARC_SHARED_ITEMS_GUI_TAB_NAME, true)
     end
+
+    AddOarcGuiTab(player, OARC_NOTEPAD_GUI_TAB_NAME)
+    SetOarcGuiTabEnabled(player, OARC_NOTEPAD_GUI_TAB_NAME, true)
+    
+    HideOarcGui(player)
 end
 
 function CreateOarcGuiButton(player)
@@ -73,11 +80,23 @@ function DoesOarcGuiExist(player)
     return (mod_gui.get_frame_flow(player)[OARC_GUI] ~= nil)
 end
 
-function ToggleOarcGuiVisible(player)
+function IsOarcGuiVisible(player)
     local of = mod_gui.get_frame_flow(player)[OARC_GUI]
-    if (of ~= nil) then
-        of.visible = not of.visible
-    end
+    return (of.visible)
+end
+
+function ShowOarcGui(player)
+    local of = mod_gui.get_frame_flow(player)[OARC_GUI]
+    if (of == nil) then return end
+    of.visible = true
+    player.opened = of
+end
+
+function HideOarcGui(player)
+    local of = mod_gui.get_frame_flow(player)[OARC_GUI]
+    if (of == nil) then return end
+    of.visible = false
+    player.opened = nil
 end
 
 function GetOarcGuiTabsPane(player)
@@ -104,8 +123,12 @@ function ClickOarcGuiButton(event)
     if (not DoesOarcGuiExist(player)) then
         CreateOarcGuiTabsPane(player)
     else
-        ToggleOarcGuiVisible(player)
-        FakeTabChangeEventOarcGui(player)
+        if (IsOarcGuiVisible(player)) then
+            HideOarcGui(player)
+        else
+            ShowOarcGui(player)
+            FakeTabChangeEventOarcGui(player)
+        end
     end
 end
 
@@ -172,7 +195,6 @@ end
 function AddOarcGuiTab(player, tab_name, content_function)
     if (not DoesOarcGuiExist(player)) then
         CreateOarcGuiTabsPane(player)
-        ToggleOarcGuiVisible(player)
     end
 
     -- Get the tabbed pane
@@ -210,12 +232,6 @@ function AddOarcGuiTab(player, tab_name, content_function)
     if (otabs.selected_tab_index == nil) then
         otabs.selected_tab_index = 1
     end
-
-    -- if (global.oarc_gui_tab_funcs == nil) then
-    --     global.oarc_gui_tab_funcs = {}
-    -- end
-
-    -- global.oarc_gui_tab_funcs[tab_name] = content_function
 end
 
 
@@ -257,5 +273,11 @@ function SwitchOarcGuiTab(player, tab_name)
             FakeTabChangeEventOarcGui(player)
             return
         end
+    end
+end
+
+function OarcGuiOnGuiClosedEvent(event)
+    if (event.element and (event.element.name == "oarc_gui")) then
+        HideOarcGui(game.players[event.player_index])
     end
 end

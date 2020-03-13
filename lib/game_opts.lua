@@ -83,8 +83,14 @@ function CreateGameOptionsTab(tab_container, player)
     if (global.ocfg.enable_regrowth) then
         soft_mods_string = soft_mods_string .. ", Regrowth"
     end
+    if (global.ocfg.enable_chest_sharing) then
+        soft_mods_string = soft_mods_string .. ", Item & Energy Sharing"
+    end
+    if (global.ocfg.enable_offline_protect) then
+        soft_mods_string = soft_mods_string .. ", Offline Attack Inhibitor"
+    end
 
-    local game_info_str = "Soft Mods Enabled: " .. soft_mods_string
+    local game_info_str = "Soft Mods: " .. soft_mods_string
 
     -- Spawn options:
     if (global.ocfg.enable_separate_teams) then
@@ -110,11 +116,11 @@ function CreateGameOptionsTab(tab_container, player)
     if (global.ocfg.enable_regrowth) then
         game_info_str = game_info_str.."\n".."Old parts of the map will slowly be deleted over time (chunks without any player buildings)."
     end
-    if (global.ocfg.enable_power_armor_start) then
-        game_info_str = game_info_str.."\n".."Power armor quick start enabled."
+    if (global.ocfg.enable_power_armor_start or global.ocfg.enable_modular_armor_start) then
+        game_info_str = game_info_str.."\n".."Quicker start enabled."
     end
     if (global.ocfg.lock_goodies_rocket_launch) then
-        game_info_str = game_info_str.."\n".."Artillery/Nukes/ArmorMK2 tech and Prod/Speed 3 module recipes are locked until you launch a rocket!"
+        game_info_str = game_info_str.."\n".."Some technologies and recipes are locked until you launch a rocket!"
     end
 
 

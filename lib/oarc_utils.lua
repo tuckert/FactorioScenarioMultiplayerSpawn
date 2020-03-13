@@ -15,7 +15,12 @@ MAX_FORCES = 64
 TICKS_PER_SECOND = 60
 TICKS_PER_MINUTE = TICKS_PER_SECOND * 60
 TICKS_PER_HOUR = TICKS_PER_MINUTE * 60
+
+MAX_INT32_POS = 2147483647
+MAX_INT32_NEG = -2147483648
 --------------------------------------------------------------------------------
+
+
 
 --------------------------------------------------------------------------------
 -- General Helper Functions
@@ -29,6 +34,11 @@ function FlyingText(msg, pos, color, surface)
     else
         surface.create_entity({ name = "flying-text", position = pos, text = msg, color = color })
     end
+end
+
+-- Get a printable GPS string
+function GetGPStext(pos)
+    return "[gps=" .. pos.x .. "," .. pos.y .. "]"
 end
 
 -- Requires having an on_tick handler.
@@ -48,6 +58,17 @@ function DisplaySpeechBubble(player, text, timeout_secs)
     end
 end
 
+-- Render some text on the ground. Visible to all players. Forever.
+function RenderPermanentGroundText(surface, position, scale, text, color)
+    rendering.draw_text{text=text,
+                    surface=surface,
+                    target=position,
+                    color=color,
+                    scale=scale,
+                    font="scenario-message-dialog",
+                    draw_on_ground=true}
+end 
+
 -- Every second, check a global table to see if we have any speech bubbles to kill.
 function TimeoutSpeechBubblesOnTick()
     if ((game.tick % (TICKS_PER_SECOND)) == 3) then
@@ -59,6 +80,25 @@ function TimeoutSpeechBubblesOnTick()
                     end
                     table.remove(global.oarc_speech_bubbles, k)
                 end
+            end
+        end
+    end
+end
+
+-- Every tick, check a global table to see if we have any rendered thing that needs fading out.
+function FadeoutRenderOnTick()
+    if (global.oarc_renders_fadeout and (#global.oarc_renders_fadeout > 0)) then
+        for k,rid in pairs(global.oarc_renders_fadeout) do
+            if (rendering.is_valid(rid)) then
+                local ttl = rendering.get_time_to_live(rid)
+                if ((ttl > 0) and (ttl < 200)) then
+                    local color = rendering.get_color(rid)
+                    if (color.a > 0.005) then
+                        rendering.set_color(rid, {r=color.r, g=color.g, b=color.b, a=color.a-0.005})
+                    end
+                end
+            else
+                global.oarc_renders_fadeout[k] = nil
             end
         end
     end
@@ -101,6 +141,19 @@ function formattime_hours_mins(ticks)
   local hours   = math.floor((minutes)/60)
   local minutes = math.floor(minutes - 60*hours)
   return string.format("%dh:%02dm", hours, minutes)
+end
+
+-- Simple math clamp
+function clamp(val, min, max)
+    if (val > max) then
+        return max
+    elseif (val < min) then
+        return min
+    end
+    return val
+end
+function clampInt32(val)
+    return clamp(val, MAX_INT32_NEG, MAX_INT32_POS)
 end
 
 -- Simple function to get total number of items in table
@@ -186,6 +239,26 @@ function GivePlayerStarterItems(player)
 
     if global.ocfg.enable_power_armor_start then
         GiveQuickStartPowerArmor(player)
+    elseif global.ocfg.enable_modular_armor_start then
+        GiveQuickStartModularArmor(player)
+    end
+end
+
+-- Modular armor quick start
+function GiveQuickStartModularArmor(player)
+    player.insert{name="modular-armor", count = 1}
+
+    if player and player.get_inventory(defines.inventory.character_armor) ~= nil and player.get_inventory(defines.inventory.character_armor)[1] ~= nil then
+        local p_armor = player.get_inventory(defines.inventory.character_armor)[1].grid
+            if p_armor ~= nil then
+                p_armor.put({name = "personal-roboport-equipment"})
+                p_armor.put({name = "battery-mk2-equipment"})
+                p_armor.put({name = "personal-roboport-equipment"})
+                for i=1,15 do
+                    p_armor.put({name = "solar-panel-equipment"})
+                end
+            end
+        player.insert{name="construction-robot", count = 40}
     end
 end
 
@@ -196,21 +269,17 @@ function GiveQuickStartPowerArmor(player)
     if player and player.get_inventory(defines.inventory.character_armor) ~= nil and player.get_inventory(defines.inventory.character_armor)[1] ~= nil then
         local p_armor = player.get_inventory(defines.inventory.character_armor)[1].grid
             if p_armor ~= nil then
-                  p_armor.put({name = "fusion-reactor-equipment"})
-                  p_armor.put({name = "exoskeleton-equipment"})
-                  p_armor.put({name = "battery-mk2-equipment"})
-                  p_armor.put({name = "battery-mk2-equipment"})
-                  p_armor.put({name = "personal-roboport-mk2-equipment"})
-                  p_armor.put({name = "personal-roboport-mk2-equipment"})
-                  p_armor.put({name = "personal-roboport-mk2-equipment"})
-                  p_armor.put({name = "battery-mk2-equipment"})
-                  p_armor.put({name = "solar-panel-equipment"})
-                  p_armor.put({name = "solar-panel-equipment"})
-                  p_armor.put({name = "solar-panel-equipment"})
-                  p_armor.put({name = "solar-panel-equipment"})
-                  p_armor.put({name = "solar-panel-equipment"})
-                  p_armor.put({name = "solar-panel-equipment"})
-                  p_armor.put({name = "solar-panel-equipment"})
+                p_armor.put({name = "fusion-reactor-equipment"})
+                p_armor.put({name = "exoskeleton-equipment"})
+                p_armor.put({name = "battery-mk2-equipment"})
+                p_armor.put({name = "battery-mk2-equipment"})
+                p_armor.put({name = "personal-roboport-mk2-equipment"})
+                p_armor.put({name = "personal-roboport-mk2-equipment"})
+                p_armor.put({name = "personal-roboport-mk2-equipment"})
+                p_armor.put({name = "battery-mk2-equipment"})
+                for i=1,7 do
+                    p_armor.put({name = "solar-panel-equipment"})
+                end
             end
         player.insert{name="construction-robot", count = 100}
         player.insert{name="belt-immunity-equipment", count = 1}
@@ -548,10 +617,49 @@ function CreateGameSurface()
         end
     end
 
-    -- If Oarc Enemies are enabled, make sure to turn off enemy spawning!
-    if (global.oe) then
-        nauvis_settings.autoplace_controls["enemy-base"].frequency = 0
-    end
+    -- For easy local testing of map gen settings. Just set what you want and uncomment.
+    -- nauvis_settings.terrain_segmentation = 0.5
+    -- nauvis_settings.water = 1.2
+    -- nauvis_settings.starting_area = 0
+
+    -- local r_freq = 0.15
+    -- local r_rich = 2.00
+    -- local r_size = 0.08
+    -- nauvis_settings.autoplace_controls["coal"].frequency = r_freq
+    -- nauvis_settings.autoplace_controls["coal"].richness = r_rich
+    -- nauvis_settings.autoplace_controls["coal"].size = r_size
+    -- nauvis_settings.autoplace_controls["copper-ore"].frequency = r_freq
+    -- nauvis_settings.autoplace_controls["copper-ore"].richness = r_rich
+    -- nauvis_settings.autoplace_controls["copper-ore"].size = r_size
+    -- nauvis_settings.autoplace_controls["crude-oil"].frequency = r_freq
+    -- nauvis_settings.autoplace_controls["crude-oil"].richness = r_rich*1.5
+    -- nauvis_settings.autoplace_controls["crude-oil"].size = r_size
+    -- nauvis_settings.autoplace_controls["iron-ore"].frequency = r_freq
+    -- nauvis_settings.autoplace_controls["iron-ore"].richness = r_rich
+    -- nauvis_settings.autoplace_controls["iron-ore"].size = r_size
+    -- nauvis_settings.autoplace_controls["stone"].frequency = r_freq
+    -- nauvis_settings.autoplace_controls["stone"].richness = r_rich
+    -- nauvis_settings.autoplace_controls["stone"].size = r_size
+    -- nauvis_settings.autoplace_controls["uranium-ore"].frequency = 0.10
+    -- nauvis_settings.autoplace_controls["uranium-ore"].richness = r_rich
+    -- nauvis_settings.autoplace_controls["uranium-ore"].size = r_size
+
+    -- nauvis_settings.autoplace_controls["enemy-base"].frequency = 0.15
+    -- nauvis_settings.autoplace_controls["enemy-base"].richness = 0.50
+    -- nauvis_settings.autoplace_controls["enemy-base"].size = 0.50
+
+    -- nauvis_settings.autoplace_controls["trees"].frequency = 0.50
+    -- nauvis_settings.autoplace_controls["trees"].richness = 1.50
+    -- nauvis_settings.autoplace_controls["trees"].size = 1.00
+
+    -- nauvis_settings.cliff_settings.cliff_elevation_0 = 15
+    -- nauvis_settings.cliff_settings.cliff_elevation_interval = 35
+    -- nauvis_settings.cliff_settings.richness = 10
+
+    -- nauvis_settings.property_expression_names["control-setting:aux:bias"] = "0.00"
+    -- nauvis_settings.property_expression_names["control-setting:aux:frequency:multiplier"] = "1.00"
+    -- nauvis_settings.property_expression_names["control-setting:moisture:bias"] = "0.50"
+    -- nauvis_settings.property_expression_names["control-setting:moisture:frequency:multiplier"] = "1.00"
 
     -- Create new game surface
     local s = game.create_surface(GAME_SURFACE_NAME, nauvis_settings)
@@ -1000,15 +1108,15 @@ function CreateCropOctagon(surface, centerPos, chunkArea, tileRadius, fillTile)
 end
 
 -- Add a circle of water
-function CreateMoat(surface, centerPos, chunkArea, tileRadius, fillTile)
+function CreateMoat(surface, centerPos, chunkArea, tileRadius, moatTile, bridge)
 
     local tileRadSqr = tileRadius^2
 
-    local waterTiles = {}
+    local tiles = {}
     for i=chunkArea.left_top.x,chunkArea.right_bottom.x,1 do
         for j=chunkArea.left_top.y,chunkArea.right_bottom.y,1 do
 
-            if (j == centerPos.y-1) or (j == centerPos.y) or (j == centerPos.y+1) then
+            if (bridge and ((j == centerPos.y-1) or (j == centerPos.y) or (j == centerPos.y+1))) then
 
             else
 
@@ -1019,7 +1127,7 @@ function CreateMoat(surface, centerPos, chunkArea, tileRadius, fillTile)
                 -- Create a circle of water
                 if ((distVar < tileRadSqr+(1500*global.ocfg.spawn_config.gen_settings.moat_size_modifier)) and
                     (distVar > tileRadSqr)) then
-                    table.insert(waterTiles, {name = "water", position ={i,j}})
+                    table.insert(tiles, {name = moatTile, position ={i,j}})
                 end
             end
 
@@ -1027,12 +1135,12 @@ function CreateMoat(surface, centerPos, chunkArea, tileRadius, fillTile)
             -- a clean transition
             -- if ((distVar <= tileRadSqr) and
             --     (distVar > tileRadSqr-10000)) then
-            --     table.insert(waterTiles, {name = fillTile, position ={i,j}})
+            --     table.insert(tiles, {name = fillTile, position ={i,j}})
             -- end
         end
     end
 
-    surface.set_tiles(waterTiles)
+    surface.set_tiles(tiles)
 end
 
 -- Create a horizontal line of water
@@ -1074,9 +1182,10 @@ function CreateWall(surface, pos)
     end
 end
 
-function CreateHoldingPen(surface, chunkArea, sizeTiles, sizeMoat)
-    if (((chunkArea.left_top.x >= -(sizeTiles+sizeMoat+CHUNK_SIZE)) and (chunkArea.left_top.x <= (sizeTiles+sizeMoat+CHUNK_SIZE))) and
-        ((chunkArea.left_top.y >= -(sizeTiles+sizeMoat+CHUNK_SIZE)) and (chunkArea.left_top.y <= (sizeTiles+sizeMoat+CHUNK_SIZE)))) then
+function CreateHoldingPen(surface, chunkArea)
+    local radiusTiles = global.ocfg.spawn_config.gen_settings.land_area_tiles-10
+    if (((chunkArea.left_top.x >= -(radiusTiles+2*CHUNK_SIZE)) and (chunkArea.left_top.x <= (radiusTiles+2*CHUNK_SIZE))) and
+        ((chunkArea.left_top.y >= -(radiusTiles+2*CHUNK_SIZE)) and (chunkArea.left_top.y <= (radiusTiles+2*CHUNK_SIZE)))) then
 
         -- Remove stuff
         RemoveAliensInArea(surface, chunkArea)
@@ -1084,30 +1193,10 @@ function CreateHoldingPen(surface, chunkArea, sizeTiles, sizeMoat)
         RemoveInArea(surface, chunkArea, "resource")
         RemoveInArea(surface, chunkArea, "cliff")
 
-        -- This loop runs through each tile
-        local grassTiles = {}
-        local waterTiles = {}
-        for i=chunkArea.left_top.x,chunkArea.right_bottom.x,1 do
-            for j=chunkArea.left_top.y,chunkArea.right_bottom.y,1 do
-
-                -- Are we within the moat area?
-                if ((i>-(sizeTiles+sizeMoat)) and (i<((sizeTiles+sizeMoat)-1)) and
-                    (j>-(sizeTiles+sizeMoat)) and (j<((sizeTiles+sizeMoat)-1))) then
-
-                    -- Are we within the land area? Place land.
-                    if ((i>-(sizeTiles)) and (i<((sizeTiles)-1)) and
-                        (j>-(sizeTiles)) and (j<((sizeTiles)-1))) then
-                        table.insert(grassTiles, {name = "grass-1", position ={i,j}})
-
-                    -- Else, surround with water.
-                    else
-                        table.insert(waterTiles, {name = "water", position ={i,j}})
-                    end
-                end
-            end
-        end
-        surface.set_tiles(waterTiles)
-        surface.set_tiles(grassTiles)
+        CreateCropCircle(surface, {x=0,y=0}, chunkArea, radiusTiles, "landfill")
+        CreateMoat(surface, {x=0,y=0}, chunkArea, radiusTiles, "water", false)
+        CreateMoat(surface, {x=0,y=0}, chunkArea, radiusTiles+10, "out-of-map", false)
+        CreateMoat(surface, {x=0,y=0}, chunkArea, 2, "out-of-map", false)
     end
 end
 
