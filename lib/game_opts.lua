@@ -30,7 +30,8 @@ function GameOptionsGuiClick(event)
         if (pIndex ~= 0) then
             local resetPlayer = event.element.parent.ban_players_dropdown.get_item(pIndex)
             if (game.players[resetPlayer]) then
-                SeparateSpawnsPlayerCreated(resetPlayer)
+                RemoveOrResetPlayer(player, false, true, true, true)
+                SeparateSpawnsPlayerCreated(resetPlayer, true)
                 log("Resetting " .. resetPlayer)
             end
         end
@@ -40,10 +41,19 @@ end
 -- Used by AddOarcGuiTab
 function CreateGameOptionsTab(tab_container, player)
 
+    if global.oarc_announcements ~= nil then
+        AddLabel(tab_container, "announcement_info_label", "Server announcements:", my_label_header_style)
+        AddLabel(tab_container, "announcement_info_txt", global.oarc_announcements, my_longer_label_style)
+        AddSpacerLine(tab_container)
+    end
+
     -- General Server Info:
     AddLabel(tab_container, "info_1", global.ocfg.welcome_msg, my_longer_label_style)
     AddLabel(tab_container, "info_2", global.ocfg.server_rules, my_longer_label_style)
     AddLabel(tab_container, "info_3", global.ocfg.server_contact, my_longer_label_style)
+    tab_container.add{type="textfield",
+                            tooltip="Come join the discord (copy this invite)!",
+                            text=DISCORD_INV}
     AddSpacerLine(tab_container)
 
     -- Enemy Settings:
@@ -52,16 +62,13 @@ function CreateGameOptionsTab(tab_container, player)
 
     local enemy_text="Server Run Time: " .. formattime_hours_mins(game.tick) .. "\n" ..
     "Current Evolution: " .. string.format("%.4f", game.forces["enemy"].evolution_factor) .. "\n" ..
-    "Enemy evolution time factor: " .. game.map_settings.enemy_evolution.time_factor .. "\n" ..
-    "Enemy evolution pollution factor: " .. game.map_settings.enemy_evolution.pollution_factor .. "\n" ..
-    "Enemy evolution destroy factor: " .. game.map_settings.enemy_evolution.destroy_factor .. "\n" ..
+    "Enemy evolution time/pollution/destroy factors: " .. game.map_settings.enemy_evolution.time_factor .. "/" ..
+    game.map_settings.enemy_evolution.pollution_factor .. "/" ..
+    game.map_settings.enemy_evolution.destroy_factor .. "\n" ..
     "Enemy expansion is " .. enemy_expansion_txt
 
     AddLabel(tab_container, "enemy_info", enemy_text, my_longer_label_style)
     AddSpacerLine(tab_container)
-
-    -- Game Mode:
-    AddLabel(tab_container, "core_mod_en", "Core game mode (separate spawns) is enabled.", my_longer_label_style)
 
     -- Soft Mods:
     local soft_mods_string = "Oarc Core"
@@ -85,6 +92,9 @@ function CreateGameOptionsTab(tab_container, player)
     end
     if (global.ocfg.enable_chest_sharing) then
         soft_mods_string = soft_mods_string .. ", Item & Energy Sharing"
+    end
+    if (global.ocfg.enable_magic_factories) then
+        soft_mods_string = soft_mods_string .. ", Special Map Chunks"
     end
     if (global.ocfg.enable_offline_protect) then
         soft_mods_string = soft_mods_string .. ", Offline Attack Inhibitor"
