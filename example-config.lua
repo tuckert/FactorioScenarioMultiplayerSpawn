@@ -1,5 +1,5 @@
 -- example-config.lua (Rename this file to config.lua to use it)
--- Oct 3 2020 (updated on)
+-- May 26 2020 (updated on)
 -- Configuration Options
 --
 -- You should be safe to leave most of the settings here as defaults if you want.
@@ -50,9 +50,6 @@ ENABLE_LONGREACH = true
 
 -- Enable Autofill (My autofill is very simplistic, if you are using a similar mod disable this!)
 ENABLE_AUTOFILL = true
-
--- Enable vanilla loaders
-ENABLE_LOADERS = true
 
 -- Enable auto decon of miners (My miner decon is very simplistic, if you are using a similar mod disable this!)
 ENABLE_MINER_AUTODECON = true
@@ -146,8 +143,8 @@ PLAYER_SPAWN_START_ITEMS = {
 
 -- Items provided after EVERY respawn (disabled by default)
 PLAYER_RESPAWN_START_ITEMS = {
-    -- {name="pistol", count=1},
-    -- {name="firearm-magazine", count=100}
+    -- ["pistol"]=1,
+    -- ["firearm-magazine"]=100,
 }
 
 ------------------------------------------------------------------------------------------------------------------------
@@ -191,6 +188,8 @@ OARC_CFG = {
 
         -- Allow players to choose to spawn with a moat
         moat_choice_enabled = true,
+        -- If there is a moat, this attempts to connect to land to avoid "turtling"
+        moat_bridging = true, 
 
         -- If you change the spawn area size, you might have to adjust this as well
         moat_size_modifier = 1,
@@ -204,6 +203,21 @@ OARC_CFG = {
         -- Spawn a circle/octagon of trees around the base outline.
         tree_circle = true,
         tree_octagon = false,
+
+        -- Add a crashed ship like a vanilla game (create_crash_site)
+        -- Resources go in the ship itself. (5 slots)
+        -- Wreakage is distributed in small pieces. (I recommend only 1 item type.)
+        crashed_ship = true,
+        crashed_ship_resources = {
+                                    ["electronic-circuit"] = 200,
+                                    ["iron-gear-wheel"] = 100,
+                                    ["copper-cable"] = 200,
+                                    -- ["spidertron"] = 1,
+                                    ["steel-plate"] = 100
+                                 },
+        crashed_ship_wreakage = {
+                                    ["iron-plate"] = 100
+                                },
     },
 
     -- Safe Spawn Area Options
