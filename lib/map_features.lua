@@ -14,6 +14,8 @@ MAGIC_BUILDING_CHUNK_SPREAD = 41
 
 POWER_USAGE_SCALING_FACTOR = 2
 
+MAGIC_MODULE_CHEST_ITEMS = 
+
 -- This is a table indexed by the single INPUT item!
 FURNACE_ENERGY_PER_CRAFT_SECOND = (180000 / 2) * POWER_USAGE_SCALING_FACTOR
 FURNACE_RECIPES = {
@@ -126,6 +128,36 @@ NEUTRAL_FORCE_RECIPES =
     -- ["pipe"] = true,
     -- ["pipe-to-ground"] = true,
 }
+
+
+-- How much bonus should be added per module deposited into chest.
+MODULE_BONUSES = {
+    ["productivity-module"] = {
+        ["boost"] = "productivity_boost",
+        ["amount"] = 0.000001,
+    }
+    ["productivity-module-2"] = {
+        ["boost"] = "productivity_boost",
+        ["amount"] = 0.00001,
+    }
+    ["productivity-module-3"] = {
+        ["boost"] = "productivity_boost",
+        ["amount"] = 0.0001,
+    }
+    ["effectivity-module"] = {
+        ["boost"] = "effeciency_boost",
+        ["amount"] =   0.000001,
+    }
+    ["effectivity-module-2"] = {
+        ["boost"] = "effeciency_boost",
+        ["amount"] =   0.00001,
+    }
+    ["effectivity-module-3"] = {
+        ["boost"] = "effeciency_boost",
+        ["amount"] =   0.0001,
+    }
+}
+
 
 function SetNeutralForceAllowedRecipes()
 
@@ -306,11 +338,34 @@ function spawnSpecialChunkInputElec(center_pos)
     return inputElec
 end
 
+function SpawnSpecialChunkModuleChest(center_pos)
+    local module_chest = game.surfaces[GAME_SURFACE_NAME].create_entity{
+        name="steel-chest",
+        position={x=center_pos.x-4,y=center_pos.y}  --slightly to left of power input
+    }
+    module_chest.destructible = false
+    module_chest.minable = false
+    module_chest.operable = false
+    return module_chest
+end
+
 function SpawnFurnaceChunk(chunk_pos)
 
     center_pos = GetCenterTilePosFromChunkPos(chunk_pos)
-    local furnace_chunk = {["energy_input"] = spawnSpecialChunkInputElec(center_pos),
-                            ["entities"] = {}}
+    local furnace_chunk = {
+        ["energy_input"] = spawnSpecialChunkInputElec(center_pos),
+        ["module_input"] = SpawnSpecialChunkModuleChest(center_pos),
+        ["module_count"] = {
+            ["productivity-module"] = 0,
+            ["productivity-module-2"] = 0,
+            ["productivity-module-3"] = 0,
+            ["effectivity-module"] = 0,
+            ["effectivity-module-2"] = 0,
+            ["effectivity-module-3"] = 0,
+        }
+        ["productivity_boost"] = 0,
+        ["effeciency_boost"] = 0,
+        ["entities"] = {}}
 
     -- 4x furnaces
     table.insert(furnace_chunk.entities, SpawnMagicBuilding("electric-furnace", {x=center_pos.x-12,y=center_pos.y-12}))
@@ -424,7 +479,10 @@ function SpawnMagicBuilding(entity_name, position)
 
     global.omagic.building_total_count = global.omagic.building_total_count + 1
 
-    return magic_building
+    -- local insertable = {['machine'] = magic_building,
+    --                     ['over_production'] = 0}
+
+    return magic_building -- insertable not good idea - Travis
 end
 
 function MagicFactoriesOnTick()
@@ -433,6 +491,32 @@ function MagicFactoriesOnTick()
     MagicRefineryOnTick()
     MagicAssemblerOnTick()
     MagicCentrifugeOnTick()
+end
+
+function MagicModuleChestOnTick(chunk)
+    local chest = chunk.module_input
+    local chest_inventory = chest.get_inventory(defines.inventory.chest)
+    local chest_contents = chest_inventory.get_contents()
+
+    -- We have something inside?
+    local first_item = next(chest_contents)
+    if not first_item then 
+        goto the_end
+    end
+    local 
+
+
+    for module_name, count in chunk.module_count do
+        local mods_in_chest = chest_inventory.get_item_count(module_name)
+        if mods_in_chest == nil then next_module end
+        count = count + mods_in_chest
+        local boost = chunk[MODULE_BONUSES[module_name]["boost"]]
+        boost = boost + (chunk[MODULE_BONUSES[module_name] * count
+
+        ::next_module::
+    end
+
+    ::the_end::
 end
 
 -- Some helpful math:
