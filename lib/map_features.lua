@@ -133,27 +133,27 @@ MODULE_BONUSES = {
     ["productivity-module"] = {
         ["boost"] = "productivity_boost",
         ["amount"] = 0.000001,
-    }
+    },
     ["productivity-module-2"] = {
         ["boost"] = "productivity_boost",
         ["amount"] = 0.00001,
-    }
+    },
     ["productivity-module-3"] = {
         ["boost"] = "productivity_boost",
         ["amount"] = 0.0001,
-    }
+    },
     ["effectivity-module"] = {
         ["boost"] = "effeciency_boost",
         ["amount"] =   0.000001,
-    }
+    },
     ["effectivity-module-2"] = {
         ["boost"] = "effeciency_boost",
         ["amount"] =   0.00001,
-    }
+    },
     ["effectivity-module-3"] = {
         ["boost"] = "effeciency_boost",
         ["amount"] =   0.0001,
-    }
+    },
 }
 
 
