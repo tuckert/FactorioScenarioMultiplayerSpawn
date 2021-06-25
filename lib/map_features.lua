@@ -360,7 +360,7 @@ function SpawnFurnaceChunk(chunk_pos)
             ["effectivity-module"] = 0,
             ["effectivity-module-2"] = 0,
             ["effectivity-module-3"] = 0,
-        }
+        },
         ["productivity_boost"] = 0,
         ["effeciency_boost"] = 0,
         ["entities"] = {}}
