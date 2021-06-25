@@ -501,7 +501,6 @@ function MagicModuleChestOnTick(chunk)
     if not first_item then 
         goto the_end
     end
-    local 
 
 
     for module_name, count in pairs(chunk.module_count) do
