@@ -520,7 +520,7 @@ function MagicModuleChestOnTick(chunk)
         if mods_in_chest == nil then goto next_module end
         count = count + mods_in_chest
         local boost = chunk[MODULE_BONUSES[module_name]["boost"]]
-        boost = boost + (chunk[MODULE_BONUSES[module_name]] * count)
+        boost = boost + chunk[MODULE_BONUSES[module_name]] * count
 
         ::next_module::
     end
