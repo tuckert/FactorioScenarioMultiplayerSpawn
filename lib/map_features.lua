@@ -351,7 +351,7 @@ function SpawnSpecialChunkModuleChest(center_pos)
     module_input["input_combinator"] = game.surfaces[GAME_SURFACE_NAME].create_entity(
         name="constant-combinator",
         position={x=center_pos.x-4,y=center_pos.y+2},
-        force="neutral",
+        force="neutral"
     )
     module_input.input_combinator.destructible = false
     module_input.input_combinator.minable = false
