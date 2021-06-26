@@ -519,8 +519,8 @@ function MagicModuleChestOnTick(chunk)
         local mods_in_chest = chest_inventory.get_item_count(module_name)
         if mods_in_chest > 0 then 
             count = count + mods_in_chest
-            local boost = chunk[MODULE_BONUSES[module_name]]["boost"]
-            boost = boost + chunk[MODULE_BONUSES[module_name]] * count
+            local boost = chunk[MODULE_BONUSES[module_name]["boost"]]
+            boost = boost + chunk[MODULE_BONUSES[module_name]["amount"]] * count
         end
         
     end
