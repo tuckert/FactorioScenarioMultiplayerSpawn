@@ -552,7 +552,7 @@ function MagicFurnaceOnTick()
             
             local furnace = machine.machine
 
-            if (furnace.machine == nil) or (not furnace.machine.valid) then
+            if (furnace == nil) or (not furnace.valid) then
                 global.omagic.furnaces[entry_idx] = nil
                 log("MagicFurnaceOnTick - Magic furnace removed?")
                 goto next_furnace_entry
