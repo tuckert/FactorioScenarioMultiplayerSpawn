@@ -503,7 +503,7 @@ function MagicFactoriesOnTick()
     MagicCentrifugeOnTick()
 end
 
-function MagicModuleChestOnTick(chunk)
+function MagicModuleChestOnTick(chunk, magic_chunk_id, chunk_type)
     local chest = chunk.module_input.chest
     local chest_inventory = chest.get_inventory(defines.inventory.chest)
     local chest_contents = chest_inventory.get_contents()
@@ -523,10 +523,10 @@ function MagicModuleChestOnTick(chunk)
             count = count + mods_in_chest
             local boost = chunk[MODULE_BONUSES[module_name]["boost"]]
             log(boost)
-            boost = boost + (MODULE_BONUSES[module_name]["amount"] * count)
+            global.omagic[chunk_type][magic_chunk_id][MODULE_BONUSES[module_name]["boost"]] = boost + (MODULE_BONUSES[module_name]["amount"] * count)
             log(boost)
-            log(chunk[MODULE_BONUSES[module_name]["boost"]])
-            chest_inventory.destroy()
+            log(global.omagic[chunk_type][magic_chunk_id][MODULE_BONUSES[module_name]["boost"]])
+            chest_inventory.remove(module_name)
         end
         
     end
@@ -552,7 +552,7 @@ function MagicFurnaceOnTick()
 
         local energy_share = entry.energy_input.energy/#entry.entities
 
-        MagicModuleChestOnTick(entry)
+        MagicModuleChestOnTick(entry, entry_idx, "furnaces")
 
         for idx,machine in pairs(entry.entities) do
             
