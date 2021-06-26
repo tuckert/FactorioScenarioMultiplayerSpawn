@@ -341,7 +341,8 @@ function SpawnSpecialChunkModuleChest(center_pos)
 
     module_input["chest"] = game.surfaces[GAME_SURFACE_NAME].create_entity{
         name="steel-chest",
-        position={x=center_pos.x-4,y=center_pos.y}  --slightly to left of power input
+        position={x=center_pos.x-4,y=center_pos.y},  --slightly to left of power input
+        force="neutral",
     }
     
     module_input.chest.destructible = false
@@ -349,12 +350,13 @@ function SpawnSpecialChunkModuleChest(center_pos)
     module_input.chest.operable = true
     module_input["input_combinator"] = game.surfaces[GAME_SURFACE_NAME].create_entity(
         name="constant-combinator",
-        position={x=center_pos.x-4,y=center_pos.y+2}
+        position={x=center_pos.x-4,y=center_pos.y+2},
+        force="neutral",
     )
     module_input.input_combinator.destructible = false
     module_input.input_combinator.minable = false
     module_input.input_combinator.operable = true
-    return module_chest
+    return module_input
 end
 
 function SpawnFurnaceChunk(chunk_pos)
