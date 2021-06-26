@@ -337,13 +337,23 @@ function spawnSpecialChunkInputElec(center_pos)
 end
 
 function SpawnSpecialChunkModuleChest(center_pos)
-    local module_chest = game.surfaces[GAME_SURFACE_NAME].create_entity{
+    local module_input = {}
+
+    module_input["chest"] = game.surfaces[GAME_SURFACE_NAME].create_entity{
         name="steel-chest",
         position={x=center_pos.x-4,y=center_pos.y}  --slightly to left of power input
     }
-    module_chest.destructible = false
-    module_chest.minable = false
-    module_chest.operable = false
+    
+    module_input.chest.destructible = false
+    module_input.chest.minable = false
+    module_input.chest.operable = true
+    module_input["input_combinator"] = game.surfaces[GAME_SURFACE_NAME].create_entity(
+        name="constant-combinator",
+        position={x=center_pos.x-4,y=center_pos.y+2}
+    )
+    module_input.input_combinator.destructible = false
+    module_input.input_combinator.minable = false
+    module_input.input_combinator.operable = true
     return module_chest
 end
 
@@ -477,10 +487,10 @@ function SpawnMagicBuilding(entity_name, position)
 
     global.omagic.building_total_count = global.omagic.building_total_count + 1
 
-    -- local insertable = {['machine'] = magic_building,
-    --                     ['over_production'] = 0}
+    local machine = {['machine'] = magic_building,
+                        ['over_production'] = 0}
 
-    return magic_building -- insertable not good idea - Travis
+    return machine -- insertable not good idea - Travis
 end
 
 function MagicFactoriesOnTick()
@@ -492,7 +502,7 @@ function MagicFactoriesOnTick()
 end
 
 function MagicModuleChestOnTick(chunk)
-    local chest = chunk.module_input
+    local chest = chunk.module_input.chest
     local chest_inventory = chest.get_inventory(defines.inventory.chest)
     local chest_contents = chest_inventory.get_contents()
 
@@ -534,9 +544,13 @@ function MagicFurnaceOnTick()
 
         local energy_share = entry.energy_input.energy/#entry.entities
 
-        for idx,furnace in pairs(entry.entities) do
+        MagicModuleChestOnTick(entry)
 
-            if (furnace == nil) or (not furnace.valid) then
+        for idx,machine in pairs(entry.entities) do
+            
+            local furnace = machine.machine
+
+            if (furnace.machine == nil) or (not furnace.machine.valid) then
                 global.omagic.furnaces[entry_idx] = nil
                 log("MagicFurnaceOnTick - Magic furnace removed?")
                 goto next_furnace_entry
@@ -628,15 +642,17 @@ function MagicChemplantOnTick()
     for entry_idx,entry in pairs(global.omagic.chemplants) do
 
         -- Validate the entry.
-        if (entry == nil) or (entry.chemplants == nil) or (entry.energy_input == nil) or (not entry.energy_input.valid) then
-            global.omagic.chemplants[entry_idx] = nil
+        if (entry == nil) or (entry.chemplants.machine == nil) or (entry.energy_input == nil) or (not entry.energy_input.valid) then
+            global.omagic.chemplants.machine[entry_idx] = nil
             log("MagicChemplantOnTick - Magic assembler entry removed?")
             goto next_chemplant_entry
         end
 
         local energy_share = entry.energy_input.energy/(#entry.chemplants + #entry.refineries)
 
-        for idx,chemplant in pairs(entry.chemplants) do
+        for idx,machine in pairs(entry.chemplants) do
+
+            local chemplant = machine.machine
             
             if (chemplant == nil) or (not chemplant.valid) then
                 global.omagic.chemplants[idx] = nil
@@ -737,7 +753,9 @@ function MagicRefineryOnTick()
 
         local energy_share = entry.energy_input.energy/(#entry.chemplants + #entry.refineries)
 
-        for idx,refinery in pairs(entry.refineries) do
+        for idx,machine in pairs(entry.refineries) do
+
+            local refinery = machine.machine
             
             if (refinery == nil) or (not refinery.valid) then
                 global.omagic.refineries[idx] = nil
@@ -828,7 +846,9 @@ function MagicAssemblerOnTick()
 
         local energy_share = entry.energy_input.energy/#entry.entities
 
-        for idx,assembler in pairs(entry.entities) do
+        for idx,machine in pairs(entry.entities) do
+            
+            local assembler = machine.machine
 
             if (assembler == nil) or (not assembler.valid) then
                 global.omagic.assemblers[entry_idx] = nil
@@ -914,7 +934,9 @@ function MagicCentrifugeOnTick()
 
         local energy_share = entry.energy_input.energy/#entry.entities
 
-        for idx,centrifuge in pairs(entry.entities) do
+        for idx,machine in pairs(entry.entities) do
+            
+            local centrifuge = machine.machine
 
             if (centrifuge == nil) or (not centrifuge.valid) then
                 global.omagic.centrifuges[entry_idx] = nil
