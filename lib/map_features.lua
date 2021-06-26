@@ -522,7 +522,11 @@ function MagicModuleChestOnTick(chunk)
             log(mods_in_chest) 
             count = count + mods_in_chest
             local boost = chunk[MODULE_BONUSES[module_name]["boost"]]
+            log(boost)
             boost = boost + (MODULE_BONUSES[module_name]["amount"] * count)
+            log(boost)
+            log(chunk[MODULE_BONUSES[module_name]["boost"]])
+            chest_inventory.destroy()
         end
         
     end
