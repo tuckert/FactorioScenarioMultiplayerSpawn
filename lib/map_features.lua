@@ -517,12 +517,12 @@ function MagicModuleChestOnTick(chunk)
 
     for module_name,count in pairs(chunk.module_count) do
         local mods_in_chest = chest_inventory.get_item_count(module_name)
-        if not mods_in_chest then goto next_module end
-        count = count + mods_in_chest
-        local boost = chunk[MODULE_BONUSES[module_name]["boost"]]
-        boost = boost + chunk[MODULE_BONUSES[module_name]] * count
-
-        ::next_module::
+        if mods_in_chest ~= nil then 
+            count = count + mods_in_chest
+            local boost = chunk[MODULE_BONUSES[module_name]["boost"]]
+            boost = boost + chunk[MODULE_BONUSES[module_name]] * count
+        end
+        
     end
 
     ::the_end::
