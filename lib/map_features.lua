@@ -348,7 +348,7 @@ function SpawnSpecialChunkModuleChest(center_pos)
     module_input.chest.destructible = false
     module_input.chest.minable = false
     module_input.chest.operable = true
-    module_input["input_combinator"] = game.surfaces[GAME_SURFACE_NAME].create_entity{
+    module_input["combinator"] = game.surfaces[GAME_SURFACE_NAME].create_entity{
         name="constant-combinator",
         position={x=center_pos.x-4,y=center_pos.y+2},
         force="neutral",
@@ -518,21 +518,34 @@ function MagicModuleChestOnTick(chunk, magic_chunk_id, chunk_type)
     for module_name,count in pairs(chunk.module_count) do
         local mods_in_chest = chest_inventory.get_item_count(module_name)
         if mods_in_chest > 0 then
-            log("Mods in chest!")
-            log(mods_in_chest) 
+            -- How many mods in chest
             count = count + mods_in_chest
+            -- Whats current boost of chunk related to module?
             local boost = chunk[MODULE_BONUSES[module_name]["boost"]]
-            log(boost)
+            -- add boost amount to global
             global.omagic[chunk_type][magic_chunk_id][MODULE_BONUSES[module_name]["boost"]] = boost + (MODULE_BONUSES[module_name]["amount"] * count)
-            log(boost)
-            log(global.omagic[chunk_type][magic_chunk_id][MODULE_BONUSES[module_name]["boost"]])
+            -- add module amount to chunk
+            global.omagic[chunk_type][magic_chunk_id]["module_count"][module_name] = global.omagic[chunk_type][magic_chunk_id]["module_count"][module_name] + count
             chest_inventory.remove(module_name)
+            
+            -- Every second, we update our combinator status info.
+            if ((game.tick % (60)) == 42) then
+                -- Update combinator
+                local combinator = chunk.module_input.combinator
+                for id,module in MODULE_BONUSES do
+                    combinator.get_or_create_control_behavior().set_signal(id,
+                    {signal={type="item", name=module},
+                    count=})
+                end
+            end
+            
         end
         
     end
 
     ::the_end::
 end
+function UpdateMagicModuleCombinator()
 
 -- Some helpful math:
 -- 94 per tick (max stack of ore in a smelter) (More like 2 or 3 ore per tick.)
