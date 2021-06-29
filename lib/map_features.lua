@@ -133,26 +133,32 @@ MODULE_BONUSES = {
     ["productivity-module"] = {
         ["boost"] = "productivity_boost",
         ["amount"] = 0.000001,
+        ["slot_id"] = 1,
     },
     ["productivity-module-2"] = {
         ["boost"] = "productivity_boost",
         ["amount"] = 0.00001,
+        ["slot_id"] = 2,
     },
     ["productivity-module-3"] = {
         ["boost"] = "productivity_boost",
         ["amount"] = 0.0001,
+        ["slot_id"] = 3,
     },
     ["effectivity-module"] = {
         ["boost"] = "effeciency_boost",
         ["amount"] =   0.000001,
+        ["slot_id"] = 4,
     },
     ["effectivity-module-2"] = {
         ["boost"] = "effeciency_boost",
         ["amount"] =   0.00001,
+        ["slot_id"] = 5,
     },
     ["effectivity-module-3"] = {
         ["boost"] = "effeciency_boost",
         ["amount"] =   0.0001,
+        ["slot_id"] = 6,
     },
 }
 
@@ -339,23 +345,25 @@ end
 function SpawnSpecialChunkModuleChest(center_pos)
     local module_input = {}
 
+    -- create chest to dump modules
     module_input["chest"] = game.surfaces[GAME_SURFACE_NAME].create_entity{
-        name="steel-chest",
+        name="wooden-chest",
         position={x=center_pos.x-4,y=center_pos.y},  --slightly to left of power input
         force="neutral",
     }
-    
     module_input.chest.destructible = false
     module_input.chest.minable = false
-    module_input.chest.operable = true
+    -- red bar the rest
+    module_input.chest.get_inventory(defines.inventory.chest).set_bar(2)
+
+    -- create combinator
     module_input["combinator"] = game.surfaces[GAME_SURFACE_NAME].create_entity{
         name="constant-combinator",
         position={x=center_pos.x-4,y=center_pos.y+2},
         force="neutral",
     }
-    module_input.input_combinator.destructible = false
-    module_input.input_combinator.minable = false
-    module_input.input_combinator.operable = true
+    module_input.combinator.destructible = false
+    module_input.combinator.minable = false
     return module_input
 end
 
@@ -489,10 +497,13 @@ function SpawnMagicBuilding(entity_name, position)
 
     global.omagic.building_total_count = global.omagic.building_total_count + 1
 
-    local machine = {['machine'] = magic_building,
-                        ['over_production'] = 0}
+    -- return a table instead to include machine overproduction
+    local machine = {
+        ['machine'] = magic_building,
+        ['over_production'] = 0,
+    }
 
-    return machine -- insertable not good idea - Travis
+    return machine
 end
 
 function MagicFactoriesOnTick()
@@ -510,42 +521,76 @@ function MagicModuleChestOnTick(chunk, magic_chunk_id, chunk_type)
 
     -- We have something inside?
     local first_item = next(chest_contents)
-    if not first_item then 
-        goto the_end
-    end
+    if first_item then 
 
-
-    for module_name,count in pairs(chunk.module_count) do
-        local mods_in_chest = chest_inventory.get_item_count(module_name)
-        if mods_in_chest > 0 then
-            -- How many mods in chest
-            count = count + mods_in_chest
-            -- Whats current boost of chunk related to module?
-            local boost = chunk[MODULE_BONUSES[module_name]["boost"]]
-            -- add boost amount to global
-            global.omagic[chunk_type][magic_chunk_id][MODULE_BONUSES[module_name]["boost"]] = boost + (MODULE_BONUSES[module_name]["amount"] * count)
-            -- add module amount to chunk
-            global.omagic[chunk_type][magic_chunk_id]["module_count"][module_name] = global.omagic[chunk_type][magic_chunk_id]["module_count"][module_name] + count
-            chest_inventory.remove(module_name)
-            
-            -- Every second, we update our combinator status info.
-            if ((game.tick % (60)) == 42) then
-                -- Update combinator
-                local combinator = chunk.module_input.combinator
-                for id,module in MODULE_BONUSES do
-                    combinator.get_or_create_control_behavior().set_signal(id,
-                    {signal={type="item", name=module},
-                    count=})
-                end
+        for module_name,count in pairs(chunk.module_count) do
+            local mods_in_chest = chest_inventory.get_item_count(module_name)
+            if mods_in_chest > 0 then
+                -- Which boost to
+                local boost = chunk[MODULE_BONUSES[module_name].boost]
+                -- add boost amount to global
+                global.omagic[chunk_type][magic_chunk_id][MODULE_BONUSES[module_name]["boost"]] = boost + (MODULE_BONUSES[module_name]["amount"] * mods_in_chest)
+                -- add module amount to chunk
+                global.omagic[chunk_type][magic_chunk_id]["module_count"][module_name] = global.omagic[chunk_type][magic_chunk_id]["module_count"][module_name] + mods_in_chest
+                -- delete the mods
+                chest_inventory.clear()
+                
+                -- get the signal for the corresponding combinator and set it            
+                local signal = chunk.module_input.combinator.get_or_create_control_behavior()
+                signal.set_signal(
+                    MODULE_BONUSES[module_name].slot_id,
+                    {signal={
+                        type="item",
+                        name=module_name
+                    },
+                    count=global.omagic[chunk_type][magic_chunk_id]["module_count"][module_name]}
+                )            
             end
-            
         end
-        
     end
-
-    ::the_end::
 end
-function UpdateMagicModuleCombinator()
+
+-- example info that is passed to Module functions
+-- info = {
+--     ["chunk_type"] = "furnaces",
+--     ["chunk_id"] = 3,
+--     ["chunk"] = {
+--         ["productivity_boost"] = 0.005,
+--         ["effeciency_boost"] = 0.001,
+--     },
+--     ["machine"] = {
+--         ["over_pruduction"] = 0.24
+--     },
+--     ["machine_id"] = 4,
+--     ["initial_items"] = 2,  
+--     ["initial_energy"] = 50,
+--     ["initial_pollution"] = 53,
+-- }
+
+function ModuleEffectsOnItems(info)
+    -- Get current over_production, calculate new produced items, and add
+    over_production = (info.initial_items * info.chunk.productivity_boost) + info.machine.over_production
+    
+    local ingredient_limit = info.initial_items
+    -- If over_production > 1, add them, record the leftover.
+    if over_production > 1 then 
+        ingredient_limit = ingredient_limit + math.floor(over_production)
+        over_production = over_production - math.floor(over_production)
+    end
+    -- Record the over_production to use later
+    global.omagic[info.chunk_type][info.chunk_id].entities[info.machine_id].over_production = over_production
+    return ingredient_limit
+end
+
+function ModuleEffectsOnEnergy(info)
+
+    return energy_limit
+end
+
+function ModuleEffectsOnPollution(info)
+
+    return pollution
+end
 
 -- Some helpful math:
 -- 94 per tick (max stack of ore in a smelter) (More like 2 or 3 ore per tick.)
@@ -555,7 +600,13 @@ function MagicFurnaceOnTick()
     if not global.omagic.furnaces then return end
 
     for entry_idx,entry in pairs(global.omagic.furnaces) do
-        
+        -- reverend's module bonuses uses this
+        local mod_info = {
+            ["chunk_type"] = "furnaces",
+            ["chunk_id"] = entry_idx,
+            ["chunk"] = entry,
+        }
+
         -- Validate the entry.
         if (entry == nil) or (entry.entities == nil) or (entry.energy_input == nil) or (not entry.energy_input.valid) then
             global.omagic.furnaces[entry_idx] = nil
@@ -564,11 +615,15 @@ function MagicFurnaceOnTick()
         end
 
         local energy_share = entry.energy_input.energy/#entry.entities
-
+        local machine_info = 
         MagicModuleChestOnTick(entry, entry_idx, "furnaces")
 
         for idx,machine in pairs(entry.entities) do
-            
+            -- data for the module bonuses
+            mod_info["machine"] = machine
+            mod_info["machine_id"] = idx
+
+            -- added to the global table so this fixes what that broke
             local furnace = machine.machine
 
             if (furnace == nil) or (not furnace.valid) then
@@ -613,6 +668,10 @@ function MagicFurnaceOnTick()
             
             -- Calculate how many times we can make the recipe.
             local ingredient_limit = math.floor(input_items[input_item_name]/recipe_ingredient.amount)
+            mod_info["initial_items"] = ingredient_limit
+            -- add production bonus to ingredient limit
+            ingredient_limit = ModuleEffectsOnItems(mod_info)
+
             local output_limit = math.floor(output_space/recipe_product.amount)
 
             -- Use shared energy pool
