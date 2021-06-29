@@ -670,13 +670,17 @@ function MagicFurnaceOnTick()
             local ingredient_limit = math.floor(input_items[input_item_name]/recipe_ingredient.amount)
             mod_info["initial_items"] = ingredient_limit
             -- add production bonus to ingredient limit
-            ingredient_limit = ModuleEffectsOnItems(mod_info)
+            
+            local effected_ingredient_limit = ModuleEffectsOnItems(mod_info)
 
-            local output_limit = math.floor(output_space/recipe_product.amount)
+            local output_limit = math.ceil(output_space/(recipe_product.amount+(recipe_product.amount*machine.over_production)))
 
             -- Use shared energy pool
             local energy_limit = math.floor(energy_share/FURNACE_RECIPES[input_item_name].recipe_energy)
             local recipe_count = math.min(ingredient_limit, output_limit, energy_limit)
+
+            -- Need to track actual output count too
+            local output_count = math.min(effected_ingredient_limit, output_limit, energy_limit)
 
             -- Hit a limit somewhere?
             if (recipe_count <= 0) then goto next_furnace end
@@ -700,8 +704,8 @@ function MagicFurnaceOnTick()
 
             -- Subtract recipe count from input and Add recipe count to output
             input_inv.remove({name=recipe_ingredient.name, count=recipe_count*recipe_ingredient.amount})
-            output_inv.insert({name=recipe_product.name, count=recipe_count*recipe_product.amount})
-            furnace.products_finished = furnace.products_finished + recipe_count
+            output_inv.insert({name=recipe_product.name, count=output_count*recipe_product.amount})
+            furnace.products_finished = furnace.products_finished + output_count
 
             -- If we have a user, do the stats
             if (furnace.last_user) then
