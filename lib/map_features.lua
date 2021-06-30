@@ -576,6 +576,7 @@ function ModuleEffectsOnItems(info)
     if over_production > 1 then 
         ingredient_limit = ingredient_limit + math.floor(over_production)
         over_production = over_production - math.floor(over_production)
+        
     end
     -- Record the over_production to use later
     global.omagic[info.chunk_type][info.chunk_id].entities[info.machine_id].over_production = over_production
@@ -583,12 +584,12 @@ function ModuleEffectsOnItems(info)
 end
 
 function ModuleEffectsOnEnergy(info)
-
+    -- do stuff
     return energy_limit
 end
 
 function ModuleEffectsOnPollution(info)
-
+    -- do stuff
     return pollution
 end
 
@@ -664,26 +665,34 @@ function MagicFurnaceOnTick()
             
             -- Can we insert at least 1 of the recipe result?
             -- if not output_inv.can_insert({name=recipe_product.name}) then goto next_furnace end
-            local output_space = output_inv.get_insertable_count(recipe_product.name)
+            local output_space = output_inv.get_insertable_count(recipe_product.name) -- 8
             
             -- Calculate how many times we can make the recipe.
-            local ingredient_limit = math.floor(input_items[input_item_name]/recipe_ingredient.amount)
-            mod_info["initial_items"] = ingredient_limit
-            -- add production bonus to ingredient limit
+            local ingredient_limit_without_production = math.floor(input_items[input_item_name]/recipe_ingredient.amount)
+            mod_info["initial_items"] = ingredient_limit_without_production -- 2
             
-            local effected_ingredient_limit = ModuleEffectsOnItems(mod_info)
-
-            local output_limit = math.ceil(output_space/(recipe_product.amount+(recipe_product.amount*machine.over_production)))
+            -- add production bonus to ingredient_limit    
+            -- Over time, will return +1 based on over_production 
+            local ingredient_limit_with_production = ModuleEffectsOnItems(mod_info)  -- 3
+            
+            -- 8/3 = 2
+            local output_limit = math.floor(output_space/ingredient_limit_with_production)  
 
             -- Use shared energy pool
             local energy_limit = math.floor(energy_share/FURNACE_RECIPES[input_item_name].recipe_energy)
-            local recipe_count = math.min(ingredient_limit, output_limit, energy_limit)
+            --                                      3,2,4 
+            local recipe_count = math.min(ingredient_limit_with_production, output_limit, energy_limit) -- 0
 
-            -- Need to track actual output count too
-            local output_count = math.min(effected_ingredient_limit, output_limit, energy_limit)
-
+            
+            -- Last resort.... log every tick!
+            log("Output Space: " .. output_space .. ".  Ingredient limit: " .. ingredient_limit_without_production .. ".")
+            log("Ingredient W Production: " .. ingredient_limit_with_production .. ".  Output Limit: " .. output_limit .. ".") 
+            log("Recipe Count: " .. recipe_count .. ".")
             -- Hit a limit somewhere?
-            if (recipe_count <= 0) then goto next_furnace end
+            if (recipe_count <= 0) then 
+                log("Should skip furnace this time")
+                goto next_furnace 
+            end
 
             -- Track energy usage
             entry.energy_input.energy = entry.energy_input.energy - (FURNACE_RECIPES[input_item_name].recipe_energy*recipe_count)
@@ -703,9 +712,10 @@ function MagicFurnaceOnTick()
             end
 
             -- Subtract recipe count from input and Add recipe count to output
-            input_inv.remove({name=recipe_ingredient.name, count=recipe_count*recipe_ingredient.amount})
-            output_inv.insert({name=recipe_product.name, count=output_count*recipe_product.amount})
-            furnace.products_finished = furnace.products_finished + output_count
+            input_inv.remove({name=recipe_ingredient.name, count=ingredient_limit_without_production*recipe_ingredient.amount})
+            if recipe_count <= 0 then log("Fucking goto sucks") end
+            output_inv.insert({name=recipe_product.name, count=recipe_count*recipe_product.amount})
+            furnace.products_finished = furnace.products_finished + recipe_count
 
             -- If we have a user, do the stats
             if (furnace.last_user) then
