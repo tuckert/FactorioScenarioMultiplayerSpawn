@@ -567,20 +567,32 @@ end
 --     ["initial_pollution"] = 53,
 -- }
 
-function ModuleEffectsOnItems(info)
+local ModuleEffectsOnItems = {}
+
+function ModuleEffectsOnItems.calculate(info)
     -- Get current over_production, calculate new produced items, and add
-    over_production = (info.initial_items * info.chunk.productivity_boost) + info.machine.over_production
-    
+    local over_production = (info.initial_items * info.chunk.productivity_boost) + info.machine.over_production
     local ingredient_limit = info.initial_items
     -- If over_production > 1, add them, record the leftover.
-    if over_production > 1 then 
+    if over_production >= 1 then 
         ingredient_limit = ingredient_limit + math.floor(over_production)
         over_production = over_production - math.floor(over_production)
-        
+    end
+    return ingredient_limit
+end
+
+function ModuleEffectsOnItems.finalize(info)
+    -- Get current over_production, calculate new produced items, and add
+    local over_production = (info.initial_items * info.chunk.productivity_boost) + info.machine.over_production
+    local ingredient_limit = info.initial_items
+    -- If over_production > 1, add them, record the leftover.
+    if over_production >= 1 then 
+        ingredient_limit = ingredient_limit + math.floor(over_production)
+        over_production = over_production - math.floor(over_production)
     end
     -- Record the over_production to use later
     global.omagic[info.chunk_type][info.chunk_id].entities[info.machine_id].over_production = over_production
-    return ingredient_limit
+    return
 end
 
 function ModuleEffectsOnEnergy(info)
@@ -673,10 +685,10 @@ function MagicFurnaceOnTick()
             
             -- add production bonus to ingredient_limit    
             -- Over time, will return +1 based on over_production 
-            local ingredient_limit_with_production = ModuleEffectsOnItems(mod_info)  -- 3
-            
-            -- 8/3 = 2
-            local output_limit = math.floor(output_space/ingredient_limit_with_production)  
+            local ingredient_limit_with_production = ModuleEffectsOnItems.calculate(mod_info)  -- 3
+            if output_space < ingredient_limit_with_production then goto next_furnace end
+            -- 8/3 = 2   der?  why?
+            local output_limit = math.floor(output_space/recipe_product.amount)  
 
             -- Use shared energy pool
             local energy_limit = math.floor(energy_share/FURNACE_RECIPES[input_item_name].recipe_energy)
@@ -716,6 +728,9 @@ function MagicFurnaceOnTick()
             if recipe_count <= 0 then log("Fucking goto sucks") end
             output_inv.insert({name=recipe_product.name, count=recipe_count*recipe_product.amount})
             furnace.products_finished = furnace.products_finished + recipe_count
+            
+            -- Record over_production
+            ModuleEffectsOnItems.finalize(mod_info)
 
             -- If we have a user, do the stats
             if (furnace.last_user) then
